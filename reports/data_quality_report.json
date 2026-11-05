@@ -1,0 +1,88 @@
+{
+  "total_rows": 1340000,
+  "unique_vms": 10000,
+  "unique_timestamps": 134,
+  "timestamp_min": 0,
+  "timestamp_max": 39900,
+  "cadence_diffs": {
+    "300": 133
+  },
+  "is_regular_cadence": true,
+  "missing_values_cpu": {
+    "min_cpu": 0,
+    "avg_cpu": 0,
+    "max_cpu": 0
+  },
+  "duplicate_vm_timestamp_pairs": 0,
+  "obs_per_vm_min": 134,
+  "obs_per_vm_max": 134,
+  "is_balanced_panel": true,
+  "active_vm_count_min": 10000,
+  "active_vm_count_max": 10000,
+  "is_constant_active_vms": true,
+  "cpu_bounds": {
+    "min_cpu": {
+      "min": 0.0,
+      "p25": 1.4879789888412092,
+      "median": 3.2279961997412627,
+      "mean": 6.156477978208739,
+      "p75": 5.331087280121448,
+      "p95": 22.825925474106707,
+      "max": 99.28158160997798
+    },
+    "avg_cpu": {
+      "min": 0.007158921626865188,
+      "p25": 2.4770598636558034,
+      "median": 5.105132868038028,
+      "mean": 9.388100729421827,
+      "p75": 9.616714848443115,
+      "p95": 37.132946878634996,
+      "max": 99.48802665399455
+    },
+    "max_cpu": {
+      "min": 0.01810795147069006,
+      "p25": 4.417642357954989,
+      "median": 9.124204011297362,
+      "mean": 18.348295299251294,
+      "p75": 23.624175118467242,
+      "p95": 65.63873190803913,
+      "max": 99.70285977277615
+    }
+  },
+  "ordering_violations": {
+    "min_gt_avg": 0,
+    "avg_gt_max": 0,
+    "out_of_0_100_range": 0
+  },
+  "train_window_timestamps": 110,
+  "holdout_window_timestamps": 24,
+  "metadata_rows": 10000,
+  "vm_id_exact_match": true,
+  "missing_metadata_vms": 0,
+  "category_counts": {
+    "Delay-insensitive": 6180,
+    "Interactive": 3091,
+    "Unknown": 729
+  },
+  "virtual_core_bucket_counts": {
+    "2": 7534,
+    "4": 1908,
+    "8": 486,
+    "24": 62,
+    ">24": 10
+  },
+  "memory_gb_bucket_counts": {
+    "2": 3904,
+    "4": 2475,
+    "8": 2146,
+    "32": 1383,
+    "64": 82,
+    ">64": 10
+  },
+  "created_timestamp_min": 0,
+  "created_timestamp_max": 0,
+  "deleted_timestamp_min": 40500,
+  "deleted_timestamp_max": 2591400,
+  "vms_created_after_start": 0,
+  "vms_deleted_before_end": 0
+}

@@ -2,3 +2,13 @@
 .venv/
 .pytest_cache/
 __pycache__/
+.ipynb_checkpoints/
+*.parquet
+artifacts/
+data-v1.tar.gz
+challenge_data/*
+!challenge_data/README.md
+task_plan.md
+findings.md
+progress.md
+.planning/
