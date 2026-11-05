@@ -12,7 +12,7 @@ Produces:
 - ``reports/tables/segment_holdout_metrics.csv``
 - ``reports/tables/reconciliation_comparison.csv``
 - ``reports/tables/interval_coverage.csv``
-- ``reports/tables/interval_coverage_and_policy.csv``
+- ``reports/tables/capacity_policy.csv``
 - ``reports/figures/fig1_fleet_overview.png``
 - ``reports/figures/fig2_vm_heterogeneity_and_segments.png``
 - ``reports/figures/fig3_cv_and_holdout_model_comparison.png``
@@ -709,7 +709,7 @@ def generate_all_figures(
     ax.set_xlabel("Asymmetric Cost (% of Fleet Capacity)")
 
     fig.suptitle(
-        "Figure 6: Operational Capacity Planning & Headroom Policy Simulation Across 28,388 Fleet vCores",
+        f"Figure 6: Operational Capacity Planning & Headroom Policy Simulation Across {int(total_cores):,} Fleet vCores",
         fontsize=13,
         fontweight="bold",
         y=0.99,
@@ -757,7 +757,7 @@ def run_evaluation(data_dir: str | Path, reports_dir: str | Path = "reports") ->
     t4 = tables_dir / "segment_holdout_metrics.csv"
     t5 = tables_dir / "reconciliation_comparison.csv"
     t6_cov = tables_dir / "interval_coverage.csv"
-    t6_pol = tables_dir / "interval_coverage_and_policy.csv"
+    t6_pol = tables_dir / "capacity_policy.csv"
 
     cv_df.to_csv(t1, index=False)
     holdout_metrics_df.to_csv(t2, index=False)
@@ -791,7 +791,7 @@ def run_evaluation(data_dir: str | Path, reports_dir: str | Path = "reports") ->
         "segment_holdout_metrics": t4,
         "reconciliation_comparison": t5,
         "interval_coverage": t6_cov,
-        "interval_coverage_and_policy": t6_pol,
+        "capacity_policy": t6_pol,
     }
 
 

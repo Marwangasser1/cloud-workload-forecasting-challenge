@@ -8,7 +8,7 @@ End-to-end exploratory analysis, leakage-free multi-horizon forecasting, hierarc
 
 ### 1. Environment Setup
 
-Requires **Python 3.10+**. From the repository root:
+Requires **Python 3.11+** (matching `pyproject.toml`; tested on Python `3.13.3`). From the repository root:
 
 ```bash
 python -m venv .venv
@@ -18,7 +18,7 @@ python -m venv .venv
 # .venv/bin/pip install -e ".[dev]"
 ```
 
-*(Alternatively, install via `pip install -r requirements.txt` and `pip install -e .`.)*
+*(Alternatively, install minimum compatible bounds via `pip install -r requirements.txt && pip install -e .`, or reproduce the exact tested environment via `pip install -r requirements-lock.txt && pip install --no-deps -e .`.)*
 
 ### 2. Dataset Location (`challenge_data/`)
 
@@ -40,7 +40,7 @@ challenge_data/
   SHA256SUMS
 ```
 
-*(Note: `cwfc.predict` also supports plain `.csv` files and runs cleanly even when the optional `vm_metadata.csv.gz` file is absent, so reviewer smoke tests on minimal synthetic datasets work out of the box.)*
+*(Note: `cwfc.predict` also supports uncompressed `.csv` files and runs cleanly even when the optional `vm_metadata.csv.gz` file is absent, so reviewer smoke tests on minimal synthetic datasets work out of the box.)*
 
 ### 3. Generate the Required Holdout Submission (`predictions.csv`)
 
@@ -73,7 +73,7 @@ pytest -v
 
 The test suite (`tests/`) includes:
 - **Holdout Perturbation Anti-Leakage Proofs (`tests/test_no_leakage.py`):** Verifies that multiplying all holdout CPU readings by `10×` (or replacing them with constants) produces **bitwise identical** training features and 24-step holdout predictions across all baselines, aggregate models, VM-level shrinkage, and the `cwfc.predict` CLI.
-- **Submission Contract Gates (`tests/test_gates.py`):** 35 tests covering schema, row count, ordering, NaNs/Infs, and physical bounds.
+- **Submission Contract Gates (`tests/test_gates.py`):** `35` parametrized test cases across `19` test functions covering schema, row count, ordering, NaNs/Infs, and physical bounds.
 - **Positional Time-Aware Validation (`tests/test_validation.py`):** Verifies expanding rolling-origin splits on integer-second timestamps.
 - **Target Construction, Metrics, Intervals & Policy (`tests/test_targets.py`, `tests/test_metrics.py`, `tests/test_predict_smoke.py`).**
 
@@ -85,12 +85,12 @@ The test suite (`tests/`) includes:
    - `data-v1` is a balanced panel of `10,000` VMs × `134` timestamps (`300s` cadence, `0` missing values, `0` duplicates, `0` `min <= avg <= max` violations).
    - Every VM in `vm_metadata.csv.gz` has `timestamp_vm_created = 0` and `timestamp_vm_deleted >= 40,500` (the very first VM deletion occurs 10 minutes *after* the holdout window ends at `39,900s`). Consequently, `active_vm_count` is deterministically `10,000` across the entire trace. `active_vm_count_forecast` detects constant training populations automatically and falls back to non-negative rounded Direct Ridge when churn is present.
 2. **Causal Level-Relative Feature Engineering:**
-   - Because the training window spans `9.08` hours (`110` steps) and includes a mid-trace workload surge (`10.15%` peak CPU around hours 5–7), raw-level tree models fail to extrapolate and 24-hour calendar features overfit. We center all autoregressive lags (`5m–60m`), rolling means (`15m–2h`), and EWMA statistics relative to the current origin level $y_{t_0}$, predicting multi-horizon residual displacements $\Delta y_{t_0, h} = y_{t_0+h} - y_{t_0}$.
+   - Because the training window spans `9.08` hours (`110` steps) and includes a mid-trace workload surge (`9.91%` peak fleet CPU at `t = 16,500s`), raw-level tree models fail to extrapolate and 24-hour calendar features overfit. We center autoregressive lags (`LAGS = {1, 2, 3, 6, 12, 24}` steps = `5m–2h`), rolling means/min/max (`15m–2h`), and EWMA statistics relative to the current origin level $y_{t_0}$, alongside causal cross-sectional distribution features (`p90_cpu`, `p95_cpu`, `mean_max_cpu`, `mean_burst_spread`, `std_cpu`), predicting multi-horizon residual displacements $\Delta y_{t_0, h} = y_{t_0+h} - y_{t_0}$.
 3. **Top-Down Hybrid Ensemble & Bottom-Up Stratum Reconciliation:**
-   - On the 24-step holdout (`33,000..39,900s`), our **`Hybrid Ensemble`** achieves **`MAE = 0.1061%` CPU** (`RMSE = 0.1423%`, `sMAPE = 1.14%`, `MASE = 0.876`), reducing error by **27.7% vs. Persistence** (`MAE = 0.1468%`) and ranking #1 on 4-fold Rolling CV (`CV MAE = 0.2027%`).
-   - Disaggregating the fleet into homogeneous `vm_category × virtual_core_bucket` strata (**`Bottom-Up Stratum Panel Ridge`**) further reduces holdout error to **`MAE = 0.0802%` CPU** (**45.4% error reduction vs. Persistence**).
+   - On the primary submission target `aggregate_cpu_utilization` (`fleet_avg_cpu`), our **`Hybrid Ensemble`** (inverse-MAE blend of `Persistence`, `MA(6)`, `Damped ETS`, and `Direct Ridge` learned from 4 inner rolling-origin folds) ranks **#1 on both 4-fold Rolling CV (`CV MAE = 0.2027%` vs. Persistence `0.2445%`, `-17.1%`) and the 24-step Holdout (`MAE = 0.1061%`, `RMSE = 0.1423%`, `sMAPE = 1.14%`, `MASE = 0.876`, `-27.7%` vs. Persistence `0.1468%`)**.
+   - Disaggregating the fleet into `13` homogeneous `vm_category × virtual_core_bucket` strata (**`Bottom-Up Stratum Panel Ridge`**) further reduces holdout error to **`MAE = 0.0802%` CPU** (**45.4% error reduction vs. Persistence**).
 4. **Conformalized Quantile Intervals & vCore Capacity Headroom Policy:**
-   - Provisioning strictly to point forecasts causes SLA shortfalls on **62.5% (15/24)** of holdout steps. Using out-of-fold empirical residuals across the fleet's **`28,388` virtual cores**, our recommended **`Horizon-Adaptive P90 Upper Bound`** policy achieves **`0.0%` SLA violations** on holdout while cutting wasted buffer capacity by **52.8%** compared to a static `+10%` safety margin.
+   - Provisioning strictly to point forecasts causes SLA shortfalls on **62.5% (15/24)** of holdout steps. Under a $5:1$ shortfall-to-overprovision penalty ratio, the theoretical Newsvendor critical quantile is $5/(5+1) = 83.3\%$, motivating our a priori selection of the **`Horizon-Adaptive P90 Upper Bound`** policy across the fleet's **`28,396` virtual cores**. On the 24-step holdout, `P90` achieves **`0.0%` SLA violations** (`+0.41` percentage points / `116.6` vCores mean idle buffer above actual demand), cutting wasted buffer capacity by **52.8%** compared to a static `+10%` safety margin (`247.1` vCores).
 
 ---
 
@@ -98,8 +98,9 @@ The test suite (`tests/`) includes:
 
 ```text
 ├── README.md                          # Setup, CLI reproduction, and architecture overview
-├── pyproject.toml                     # Package metadata and dependencies
-├── requirements.txt                   # Pinned runtime and development dependencies
+├── pyproject.toml                     # Package metadata and dependencies (Python 3.11+)
+├── requirements.txt                   # Compatible runtime and development dependency bounds
+├── requirements-lock.txt              # Exact pip freeze lock of the tested virtual environment
 ├── predictions.csv                    # Generated 24-row holdout submission (verified by cwfc.gates)
 ├── src/cwfc/
 │   ├── __init__.py                    # Public package exports
@@ -111,7 +112,7 @@ The test suite (`tests/`) includes:
 │   ├── metrics.py                     # MAE, RMSE, sMAPE, NMAE, MASE, Pinball Loss, Coverage, Peak MAE
 │   ├── gates.py                       # Post-hoc submission contract verifier (verify_predictions)
 │   ├── baselines.py                   # Persistence, Seasonal Naive, MA(12), Damped Drift, EWMA
-│   ├── features.py                    # Strictly causal level-relative lag/rolling/EWMA feature builder
+│   ├── features.py                    # Strictly causal level-relative lag/rolling/EWMA/cross-sectional features
 │   ├── models.py                      # Damped ETS, Direct Ridge, Direct HGB, Hybrid Ensemble, Stratum & VM Shrinkage
 │   ├── intervals.py                   # Conformalized out-of-fold empirical prediction intervals
 │   ├── policy.py                      # vCore capacity headroom simulator & asymmetric cost evaluator
@@ -122,7 +123,7 @@ The test suite (`tests/`) includes:
 │   ├── 02_workload_eda.ipynb          # Executed notebook: target dynamics, ACF, VM skewness, segment EDA
 │   └── 03_validation_and_errors.ipynb # Executed notebook: rolling CV, holdout benchmark, reconciliation, policy
 ├── reports/
-│   ├── final_report.md                # Comprehensive 5-page technical report (Sections 1–9)
+│   ├── final_report.md                # Comprehensive technical report (Sections 1–9)
 │   ├── data_quality_report.json       # Programmatic audit summary of the 1.34M-row release
 │   ├── tables/                        # 7 CSV benchmark tables (CV, holdout, horizon decay, segments, policy)
 │   └── figures/                       # 6 publication-quality PNG figures (180 DPI)

@@ -128,7 +128,7 @@ def capacity_policy_trajectories(
     y_true_cpu: np.ndarray,
     point_pred_cpu: np.ndarray,
     intervals_df: pd.DataFrame,
-    total_cores: float = 28388.0,
+    total_cores: float = 28396.0,
     peak_burst_addon_pct: float = 0.0,
 ) -> pd.DataFrame:
     """Long-format per-step view (``policy, horizon, demand_pct, provisioned_pct, ...``) for plotting."""
@@ -159,7 +159,7 @@ def evaluate_capacity_policies(
     y_true_cpu: np.ndarray,
     point_pred_cpu: np.ndarray,
     intervals_df: pd.DataFrame,
-    total_cores: float = 28388.0,
+    total_cores: float = 28396.0,
     underprovision_cost_ratio: float = 5.0,
     peak_burst_addon_pct: float = 0.0,
 ) -> pd.DataFrame:

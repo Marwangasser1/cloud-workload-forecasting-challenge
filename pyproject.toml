@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cloud-workload-forecasting"
 version = "1.0.0"
-description = "Candidate starter utilities for a cloud workload forecasting take-home"
+description = "End-to-end cloud workload forecasting, hierarchical reconciliation, conformalized intervals, and capacity headroom policy for the Cloud Workload Forecasting Challenge"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26",
