@@ -22,12 +22,21 @@ python -m venv .venv
 
 ### 2. Dataset Location (`challenge_data/`)
 
-Download the `data-v1.tar.gz` release archive from the challenge GitHub Release and extract it into `challenge_data/` so that the directory contains:
+Download `data-v1.tar.gz` from the official release: **[Azure Dataset v1 Release (`data-v1`)](https://github.com/atomityhq/forecasting-challenge/releases/tag/data-v1)** and extract it into `challenge_data/`:
+
+```bash
+mkdir -p challenge_data
+tar -xzf data-v1.tar.gz -C challenge_data
+cd challenge_data && sha256sum -c SHA256SUMS && cd ..
+```
+
+The resulting directory layout is:
 
 ```text
 challenge_data/
   vm_cpu_readings.csv.gz
   vm_metadata.csv.gz
+  DATA_CARD.md
   SHA256SUMS
 ```
 

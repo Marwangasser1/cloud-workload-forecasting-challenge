@@ -47,7 +47,7 @@ A critical empirical question is why `active_vm_count(t) = 10,000` never changes
 - Every single VM has `timestamp_vm_deleted >= 40,500` (`deleted_timestamp_min = 40,500`, `deleted_timestamp_max = 2,591,400`, `vms_deleted_before_end = 0`).
 - **Operational Implication:** The `data-v1` subset was curated by filtering for VMs that survived at least `11.25` hours (`40,500` seconds). Because the very first VM deletion occurs at $t = 40,500\text{ s}$—just **10 minutes (2 steps) after the holdout window closes at $t = 39,900\text{ s}$**—there is zero churn inside the observation window. In production, however, `active_vm_count` experiences continuous arrivals and departures (as seen in Figure 2d after $t = 11.25\text{ h}$). Therefore, our `active_vm_count_forecast` function checks whether training `active_vm_count` has zero variance (returning exact persistence) and automatically switches to a non-negative rounded Direct Ridge forecaster when churn is present (verified in `tests/test_no_leakage.py`).
 
-![Figure 1: Fleet Workload Overview](file:///C:/Users/Gasser/1_GitHub/forecasting-challenge/reports/figures/fig1_fleet_overview.png)
+![Figure 1: Fleet Workload Overview](figures/fig1_fleet_overview.png)
 
 ---
 
@@ -68,7 +68,7 @@ As shown in **Figure 2**, the workload exhibits three defining structural proper
   - **`vm_category`:** `Delay-insensitive` VMs dominate count (`6,180` VMs, `61.8%`) and exhibit smooth, low-variance utilization (`mean CPU = 9.04%`, holdout Persistence `MAE = 0.0810%`). Conversely, `Interactive` VMs (`3,091` VMs, `30.9%`) run hotter (`mean CPU = 9.93%`) with **3.4× higher volatility** (holdout Persistence `MAE = 0.2793%`), while `Unknown` VMs (`729` VMs, `7.3%`) average `10.02%` CPU (`MAE = 0.3716%`).
   - **`virtual_core_bucket`:** Small 2-vCore VMs make up `75.3%` of the fleet (`7,534` VMs, `mean CPU = 8.43%`), whereas larger `4`-vCore (`1,908` VMs, `11.86%` CPU), `8`-vCore (`486` VMs, `14.12%` CPU), `24`-vCore (`62` VMs, `12.60%` CPU), and `>24`-vCore (`10` VMs, `10.48%` CPU) instances carry disproportionate core-weighted load. Mapping buckets `2, 4, 8, 24, >24` to `2, 4, 8, 24, 32` vCores yields **`28,388` total provisioned vCores**, with a core-weighted mean utilization of **`10.35%`** (nearly a full percentage point higher than unweighted `9.39%`).
 
-![Figure 2: VM Heterogeneity and Segments](file:///C:/Users/Gasser/1_GitHub/forecasting-challenge/reports/figures/fig2_vm_heterogeneity_and_segments.png)
+![Figure 2: VM Heterogeneity and Segments](figures/fig2_vm_heterogeneity_and_segments.png)
 
 ---
 
@@ -158,9 +158,9 @@ Does forecasting at the disaggregate VM or segment level beat forecasting the to
 
 **Why Stratum Bottom-Up Wins (`MAE = 0.0802%`):** Grouping VMs into `vm_category × virtual_core_bucket` strata filters out individual VM noise while preserving the distinct mean-reversion speeds of `Interactive` vs `Delay-insensitive` workloads and multiplying sample size by $12\times$ for Ridge estimation. Notice, however, that `cwfc.predict` defaults to `Top-Down Hybrid Ensemble` (`MAE = 0.1061%`) because `vm_metadata.csv.gz` is optional at inference time, ensuring `python -m cwfc.predict` runs cleanly on CPU readings alone while still beating Persistence by `27.7%`.
 
-![Figure 3: CV and Holdout Model Comparison](file:///C:/Users/Gasser/1_GitHub/forecasting-challenge/reports/figures/fig3_cv_and_holdout_model_comparison.png)
+![Figure 3: CV and Holdout Model Comparison](figures/fig3_cv_and_holdout_model_comparison.png)
 
-![Figure 4: Holdout Forecasts with Prediction Intervals](file:///C:/Users/Gasser/1_GitHub/forecasting-challenge/reports/figures/fig4_holdout_forecasts_with_intervals.png)
+![Figure 4: Holdout Forecasts with Prediction Intervals](figures/fig4_holdout_forecasts_with_intervals.png)
 
 ---
 
@@ -186,7 +186,7 @@ Following rigorous scientific reporting practices, we explicitly document the em
 | **`Direct Ridge` Mean vs. Peak Trade-off** | `Direct Ridge` has higher overall Holdout MAE (`0.1455%`) than `Hybrid Ensemble` (`0.1061%`), but achieves the best Holdout Peak MAE (`0.0648%` vs `0.3856%`). | Ridge projects a slightly higher mean-reverting trajectory (`~9.35%`), which slightly over-predicts troughs (`h=1..6`) but hits the late-holdout peak (`9.57%` at `t=37,500s`) almost exactly. Rather than cherry-picking Ridge for peak accuracy, we keep the conservative `Hybrid Ensemble` point forecast and cover peaks via calibrated `P90` upper quantile bounds. |
 | **Unweighted vs. Core-Weighted Fleet Utilization** | Unweighted `aggregate_cpu_utilization` averages `9.39%`, whereas vCore-weighted utilization averages **`10.35%`** (`+0.96%` higher). | `4`-vCore (`11.86%`) and `8`-vCore (`14.12%`) VMs run hotter than `2`-vCore VMs (`8.43%`). We satisfy the unweighted submission contract in `predictions.csv` while translating capacity policies into physical vCores (`28,388` total cores) in `cwfc.policy`. |
 
-![Figure 5: Error by Horizon and Residuals](file:///C:/Users/Gasser/1_GitHub/forecasting-challenge/reports/figures/fig5_error_by_horizon_and_residuals.png)
+![Figure 5: Error by Horizon and Residuals](figures/fig5_error_by_horizon_and_residuals.png)
 
 ---
 
@@ -217,7 +217,7 @@ Using out-of-fold rolling residuals $e_{f, h} = y_{f, h} - \hat{y}_{f, h}$ acros
    - Place `Interactive` VMs on hosts with a **`P95` upper-bound headroom rule** (`2,771.6` vCores fleet-equivalent, which cuts +5% burst-surge cost by **32.1%** compared to static +5% margin).
    - Co-locate `Delay-insensitive` batch workloads on high-density hosts using **`P80` headroom** (`2,709.9` vCores, lowest standard asymmetric cost `0.2761`), using pre-emptible slack to absorb sudden `Interactive` spikes whenever forecasted `fleet_p95_max_cpu` exceeds `70%`.
 
-![Figure 6: Capacity Headroom Policy](file:///C:/Users/Gasser/1_GitHub/forecasting-challenge/reports/figures/fig6_capacity_headroom_policy.png)
+![Figure 6: Capacity Headroom Policy](figures/fig6_capacity_headroom_policy.png)
 
 ---
 
